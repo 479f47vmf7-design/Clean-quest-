@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clean Quest</title>
+<style>
+:root{--bg:#f7f4ef;--card:#fff;--ink:#24232a;--muted:#77727b;--accent:#7c6cf2;--line:#e8e2da}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,sans-serif}
+.app{max-width:1050px;margin:auto;padding:16px 14px 90px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.logo{font-size:25px;font-weight:900}
+.xp,.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 8px 24px #0000000d}.xp{padding:9px 12px}.card{padding:16px;margin-bottom:12px}
+nav{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);width:min(760px,calc(100% - 20px));display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#fffffff0;padding:7px;border:1px solid var(--line);border-radius:20px;z-index:5}
+button{border:0;border-radius:13px;padding:10px 13px;background:#eee8ff;color:#40356e;font-weight:750;cursor:pointer}.screen{display:none}.screen.active{display:block}
+.hero{padding:20px;border-radius:24px;background:linear-gradient(135deg,#eee9ff,#fff);margin-bottom:14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.space{justify-content:space-between}.pill{padding:5px 9px;border-radius:999px;background:#f1edf8;color:#5d5271;font-size:12px;font-weight:700}
+.progress{height:9px;background:#eeeae5;border-radius:99px;overflow:hidden}.bar{height:100%;background:var(--accent)}.room{cursor:pointer}.emoji{font-size:32px}
+p{color:var(--muted);line-height:1.45}.photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px;background:#eee}.thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:11px;background:#fff;margin:5px 0 10px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.day{min-height:65px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:5px;font-size:11px}.event{margin-top:4px;border-radius:6px;padding:3px;border-left:3px solid #7c6cf2}
+.toast{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);background:#24232a;color:white;padding:10px 14px;border-radius:12px;display:none;z-index:20}
+</style></head><body><div class="app">
+<header class="top"><div class="logo">🧹 Clean Quest</div><div class="xp">⭐ <span id="xp">0</span> XP · Lv <span id="level">1</span></div></header>
+
+<section id="home" class="screen active">
+<div class="hero"><span class="pill">WHOLE HOUSE</span><h1>Restore your home, one quest at a time.</h1>
+<p>Choose your energy, pick a style, and tackle one manageable mission instead of an overwhelming list.</p>
+<div class="row"><button onclick="setEnergy('low')">🌱 Low</button><button onclick="setEnergy('medium')">⚡ Medium</button><button onclick="setEnergy('high')">🔥 High</button><button onclick="setEnergy('unknown')">❔ Not sure</button></div></div>
+<div class="grid" id="roomGrid"></div>
+<div class="card"><div class="row space"><h2>🏆 Family Goal</h2><span class="pill" id="familyXP">0 / 500 XP</span></div><p>Work together toward a shared reward.</p><div class="progress"><div class="bar" id="familyBar" style="width:0"></div></div></div>
+</section>
+
+<section id="quests" class="screen"><div class="card"><h2>🎯 Quest Generator</h2><p>One mission at a time. No shame. No giant list.</p>
+<label>Cleaning style</label><select id="style" onchange="newQuest()"></select><label>Room</label><select id="questRoom"></select>
+<div class="card"><span class="pill" id="questStyle">Cozy</span><h2 id="questTitle">Trash Hunt</h2><p id="questText"></p>
+<button onclick="completeQuest()">✅ Complete</button> <button onclick="newQuest()">🎲 Random</button></div></div></section>
+
+<section id="rooms" class="screen"><div class="card"><div class="row space"><h2>🏠 My Rooms</h2><button onclick="addRoom()">＋ Add Room</button></div><p>Each room keeps progress plus before/after photos.</p></div><div class="grid" id="roomsList"></div><div id="roomDetail"></div></section>
+
+<section id="calendar" class="screen"><div class="card"><div class="row space"><h2>📅 Calendar</h2><button onclick="addEvent()">＋ Add Event</button></div><p>Basic colors stay free. Cleaning quests can connect to scheduled events.</p><div class="calendar" id="calendarGrid"></div></div><div class="card"><h3>🌿 Protected Downtime</h3><p>Rest is allowed. The calendar should not turn every empty space into a chore.</p></div></section>
+
+<section id="family" class="screen"><div class="card"><h2>👨‍👩‍👧 Family Team</h2><p>Cooperative cleaning with no public leaderboards or shame-based scoring.</p>
+<label>Member name</label><input id="memberName" placeholder="Name"><label>Member color</label><input id="memberColor" type="color" value="#7c6cf2"><button onclick="addMember()">Add member</button><div id="members"></div></div>
+<div class="card"><h3>🧒 Parent controls</h3><p>Age-appropriate chores, optional reward approval, shared goals, and family-friendly missions.</p></div></section>
+
+<nav><button onclick="show('home')">🏠<br>Home</button><button onclick="show('quests')">🎯<br>Quests</button><button onclick="show('rooms')">🛏️<br>Rooms</button><button onclick="show('calendar')">📅<br>Calendar</button><button onclick="show('family')">👨‍👩‍👧<br>Family</button></nav>
+</div><div class="toast" id="toast"></div>
+
+<script>
+const styles=['Cozy','Goblin','Speedrun','Deep Clean','Micro-Step','Sensory-Friendly','Energy Check-In','Emotional Reset','Kid Quest','Parent + Kid','Family Team','Sibling Challenge'];
+const quests={
+'Cozy':['Trash Hunt|Collect obvious trash for 5 minutes.','Tiny Win|Put away five things.','Laundry Hug|Move one small laundry pile home.'],
+'Goblin':['Goblin Raid|Grab a bag and destroy visible trash.','Floor Frenzy|Clear one small floor zone.','Box Boss|Break down one cardboard box.'],
+'Speedrun':['5-Minute Sprint|Set a timer and clear one surface.','Laundry Dash|Put away as many clothes as possible.','Trash Speedrun|Collect trash from one room.'],
+'Deep Clean':['Surface Reset|Clear, wipe, and return one surface.','Detail Zone|Clean one neglected corner.','Organize|Give one category a home.'],
+'Micro-Step':['One Item|Pick up exactly one item and put it away.','One Category|Move only one tiny category.','Next Step|Do the next single physical action.'],
+'Sensory-Friendly':['Low-Stim Reset|Choose one quiet category for 3 minutes.','Soft Sort|Sort only clothes or towels.','Quiet Win|Put away five easy items.'],
+'Energy Check-In':['Low Energy|Choose the easiest visible win.','Medium Energy|Clear one defined zone.','High Energy|Do a 10-minute focused reset.'],
+'Emotional Reset':['Reset Spot|Make one small area feel calmer.','Comfort Clean|Choose a familiar low-pressure task.','Fresh Start|Clear five items and take a breath.'],
+'Kid Quest':['Star Cleanup|Put away 5 items.','Trash Detective|Find 5 pieces of trash.','Sock Rescue|Pair 5 socks.'],
+'Parent + Kid':['Team Toss|Adult gathers trash while kid spots it.','Buddy Sort|Each person puts away five things.','Room Relay|Take turns clearing one zone.'],
+'Family Team':['Family Sweep|Everyone clears one small area.','Category Crew|Each person owns one category.','Victory Lap|Do a 10-minute reset together.'],
+'Sibling Challenge':['Friendly Race|Put away 10 items without rushing.','Category Hunt|Each sibling tackles a category.','Clean & Cheer|Finish a zone and celebrate.']
+};
+const defaults=[['Bedroom','🛏️',35],['Bathroom','🛁',0],['Kitchen','🍳',0],['Living Room','🛋️',0]];
+let state=JSON.parse(localStorage.getItem('cleanQuest')||'null')||{xp:0,familyXP:0,energy:'unknown',rooms:defaults.map((x,i)=>({id:i,name:x[0],emoji:x[1],progress:x[2],before:null,after:null})),members:[],events:[]};
+function save(){localStorage.setItem('cleanQuest',JSON.stringify(state))}
+function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');scrollTo(0,0)}
+function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',1600)}
+function addXP(n){state.xp+=n;state.familyXP+=n;render();toast('+'+n+' XP!')}
+function setEnergy(x){state.energy=x;newQuest();toast('Energy: '+x)}
+function newQuest(){let s=document.getElementById('style').value||'Cozy',a=quests[s],q=a[Math.floor(Math.random()*a.length)].split('|');document.getElementById('questStyle').textContent=s;document.getElementById('questTitle').textContent=q[0];document.getElementById('questText').textContent=q[1];show('quests')}
+function completeQuest(){let r=state.rooms.find(x=>x.id==document.getElementById('questRoom').value);r.progress=Math.min(100,r.progress+5);addXP(25);newQuest()}
+function addRoom(){let n=prompt('Room name?');if(!n)return;state.rooms.push({id:Date.now(),name:n,emoji:'✨',progress:0,before:null,after:null});render()}
+function openRoom(id){let r=state.rooms.find(x=>x.id==id);document.getElementById('roomDetail').innerHTML='<div class="card"><h2>'+r.emoji+' '+r.name+'</h2><div class="thumbs"><div><b>Before</b><img class="photo" src="'+(r.before||'')+'" onerror="this.style.visibility=\'hidden\'"><input type="file" accept="image/*" onchange="photo('+r.id+',\'before\',this)"></div><div><b>After</b><img class="photo" src="'+(r.after||'')+'" onerror="this.style.visibility=\'hidden\'"><input type="file" accept="image/*" onchange="photo('+r.id+',\'after\',this)"></div></div><button onclick="show(\'quests\')">🎯 Clean this room</button></div>'}
+function photo(id,type,input){let f=input.files[0];if(!f)return;let rd=new FileReader();rd.onload=()=>{let r=state.rooms.find(x=>x.id==id);r[type]=rd.result;render();openRoom(id);toast(type+' photo saved on this device')};rd.readAsDataURL(f)}
+function addEvent(){let title=prompt('Event name?');if(!title)return;let date=prompt('Date YYYY-MM-DD?',new Date().toISOString().slice(0,10));if(!date)return;state.events.push({title,date,color:'#7c6cf2'});render();toast('Event added')}
+function addMember(){let n=document.getElementById('memberName').value.trim();if(!n)return;state.members.push({name:n,color:document.getElementById('memberColor').value});document.getElementById('memberName').value='';render()}
+function renderCalendar(){let g=document.getElementById('calendarGrid'),now=new Date(),y=now.getFullYear(),m=now.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>'<div class="day"><b>'+x+'</b></div>').join('');for(let i=0;i<first;i++)h+='<div class="day"></div>';for(let d=1;d<=days;d++){let key=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),ev=state.events.filter(e=>e.date===key);h+='<div class="day"><b>'+d+'</b>'+ev.map(e=>'<div class="event" style="background:'+e.color+'22">'+e.title+'</div>').join('')+'</div>'}g.innerHTML=h}
+function render(){document.getElementById('xp').textContent=state.xp;document.getElementById('level').textContent=Math.floor(state.xp/100)+1;document.getElementById('familyXP').textContent=state.familyXP+' / 500 XP';document.getElementById('familyBar').style.width=Math.min(100,state.familyXP/5)+'%';
+let cards=state.rooms.map(r=>'<div class="card room" onclick="openRoom('+r.id+')"><div class="emoji">'+r.emoji+'</div><h2>'+r.name+'</h2><p>'+r.progress+'% restored</p><div class="progress"><div class="bar" style="width:'+r.progress+'%"></div></div></div>').join('');document.getElementById('roomGrid').innerHTML=cards;document.getElementById('roomsList').innerHTML=cards;
+document.getElementById('style').innerHTML=styles.map(x=>'<option>'+x+'</option>').join('');document.getElementById('questRoom').innerHTML=state.rooms.map(r=>'<option value="'+r.id+'">'+r.emoji+' '+r.name+'</option>').join('');document.getElementById('members').innerHTML=state.members.map(m=>'<span class="pill" style="border-left:5px solid '+m.color+'">'+m.name+'</span>').join(' ')||'<p>No family members added yet.</p>';renderCalendar();save()}
+render();newQuest();
+</script></body></html>
